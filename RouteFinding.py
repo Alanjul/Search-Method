@@ -490,7 +490,7 @@ def compare_all_algorithm(start_city, dest, weighted, cities):
 
     return results
 def start_program():
-    """The start program demonstrate the city patbfinding algorithm"""
+    """The start program demonstrate the city pathfinding algorithm"""
     print("====City Path Finding Program===")
 
     cities = load_cities('coordinates.csv')
