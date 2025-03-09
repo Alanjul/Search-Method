@@ -29,7 +29,7 @@ route_collection = []
 def get_memory_usage():
     process = psutil.Process(os.getpid())
     memory_info = process.memory_info()
-    return memory_info.rss #return memory usage in bites
+    return memory_info.rss #return memory usage in bytes
 def load_cities(filename):
     "load cities loads the cities from csv file using pandas pd"
     try:
