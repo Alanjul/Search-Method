@@ -1,6 +1,8 @@
 import math
 import time
 import heapq
+import psutil
+import os
 from collections import deque
 import matplotlib.pyplot as plt
 from queue import PriorityQueue
@@ -22,7 +24,12 @@ size = 120
 FONT_SIZE = 16
 #route collection storage
 route_collection = []
-
+#track memory usage
+# Function to track memory usage
+def get_memory_usage():
+    process = psutil.Process(os.getpid())
+    memory_info = process.memory_info()
+    return memory_info.rss #return memory usage in bites
 def load_cities(filename):
     "load cities loads the cities from csv file using pandas pd"
     try:
@@ -161,7 +168,7 @@ def best_first_search( start_city, end_goal_city, adj, cities):
                 previous_start[neighbor] = current_city  # track previous  visited cities
 
                 #new heuristic calculated for neighbor
-                heuristic_new=(distance(start_city, end_goal_city, cities))
+                heuristic_new=(distance(neighbor, end_goal_city, cities))
                 heapq.heappush(queue,(heuristic_new ,neighbor, current_path + [neighbor], new_cost))
                 edge.append((current_city, neighbor, edge_cost))  # record the new path
 
@@ -187,13 +194,15 @@ def depth_first_search( start_city, end_goal_city, adjacent):
         if current == end_goal_city:
             return traversal_path, path, edges
         #get the neighbors of the current city
-        if current in adjacent:
-            neighbors = list(adjacent[current])
-            #traverse the neighbors in reversed to explore the cities in correct order
-            for neighbor in sorted(neighbors):
-                if neighbor not in visited:
-                    #append the neighbor to stack and its path
-                    stack.append((neighbor, path + [neighbor]))
+        if current not in adjacent:
+            continue
+
+        neighbors = list(adjacent[current])
+        #traverse the neighbors in reversed to explore the cities in correct order
+        for neighbor in sorted(neighbors, reverse=True):
+            if neighbor not in visited:
+                #append the neighbor to stack and its path
+                stack.append((neighbor, path + [neighbor]))
     #if nothing found return the path traversed, edges, and none
     return traversal_path, None, edges
 
@@ -209,7 +218,7 @@ def limited_search(city,goal, neighbors,depth, traversal_path, path,edges):
         return False
     if city not in neighbors:
         return False
-    for neighbor in neighbors[city]:
+    for neighbor in sorted(neighbors[city], reverse=True):
         #check if neigbhor is not in the path
         if neighbor not in path:
             #append the current city and the neighbor
@@ -291,8 +300,8 @@ def a_star_search(start_city,dest, adjacent, cities):
         if current  in closed_set:
             continue
         #add city to path
-        if current != traversal_path[-1]:
-            traversal_path.append(current)
+
+        traversal_path.append(current)
 
 
         #mark as provessed
@@ -363,12 +372,24 @@ def scale_coordinates( coordinates, width=12, height=8):
 # Function to visualize the cities and the path
 def visualize(cities, start=None, dest=None, path=None, traverse=None ,ax = None):
     if ax is None:
-        fig, ax = plt.subplots(figsize=(10, 8))
+        fig, ax = plt.subplots(figsize=(12, 10))
 
-    ax.set_title("Path finding Visuals")
-    # Set axis limits for panning
-    ax.set_xlim(min(cities.values(), key=lambda x: x[0])[0] - 1, max(cities.values(), key=lambda x: x[0])[0] + 1)
-    ax.set_ylim(min(cities.values(), key=lambda x: x[1])[1] - 1, max(cities.values(), key=lambda x: x[1])[1] + 1)
+    ax.set_title("Path finding Visualization")
+    #extract values
+    lats = [lat for lat, lon in cities.values()]
+    lons = [lon for lat, lon in cities.values()]
+    # Set axis limits
+    min_lat, max_lat = min(lats)-1, max(lats)+1
+    min_lon, max_lon  = min(lons)-1, max(lons)+1
+
+    #add limts to x and y axis
+    ax.set_xlim(min_lon, max_lon)
+    ax.set_ylim(min_lat, max_lat)
+
+    #add labels on x and y
+    ax.set_xlabel('Longitude')
+    ax.set_ylabel("Latitude")
+
 
    #plot all cities
     for city, (lat, lon) in cities.items():
@@ -398,6 +419,7 @@ def visualize(cities, start=None, dest=None, path=None, traverse=None ,ax = None
         path_coords = [cities[city] for city in path]
         path_lat, path_lon = zip(*path_coords)
         ax.plot(path_lon, path_lat, color='r', linewidth=2, label='Path')
+    #add legends
 
     # Zooming feature: Add a slider to control zoom level
     ax_slider = plt.axes([0.25, 0.02, 0.65, 0.03], facecolor='yellow')
@@ -405,10 +427,16 @@ def visualize(cities, start=None, dest=None, path=None, traverse=None ,ax = None
 
     def update(val):
         zoom_level = zoom_slider.val
-        ax.set_xlim(min(cities.values(), key=lambda x: x[0])[0] - zoom_level,
-                    max(cities.values(), key=lambda x: x[0])[0] + zoom_level)
-        ax.set_ylim(min(cities.values(), key=lambda x: x[1])[1] - zoom_level,
-                    max(cities.values(), key=lambda x: x[1])[1] + zoom_level)
+        zoom_range = (max_lat - min_lat)/zoom_level
+        zoom_range_lon =(max_lon - min_lon)/zoom_level
+
+        #center map
+        center_lat = (min_lat + max_lat)/2
+        center_lon = (min_lon + max_lon)/2
+
+        #set limit based on zoom level
+        ax.set_xlim(center_lon - zoom_range_lon/2, center_lon + zoom_range_lon/2)
+        ax.set_ylim(center_lat - zoom_range/2, center_lat + zoom_range_lon/2 )
         fig.canvas.draw_idle()
 
     zoom_slider.on_changed(update)
@@ -426,10 +454,14 @@ def compare_all_algorithm(start_city, dest, weighted, cities):
 
     def standardize_dfs(start, goal, adj):
         # For DFS, convert weighted adjacency to unweighted
-        unweighted = {city: [neighbor for neighbor, _ in neighbors]
-                     for city, neighbors in adj.items()}
+        unweighted = {} #dictionary to hold unweightd
+        for city, neighbors in adj.items():
+            unweighted[city] = []
+            for neighbor, _ in neighbors:
+                unweighted[city].append(neighbor)
+                #call the depth first search algorithm
         traversal, path, edges = depth_first_search(start, goal, unweighted)
-        return traversal or [start], path, edges or []
+        return  traversal or [start], path, edges or []
 
     def standardize_astar(start, goal, adj, cities):
         traversal, path, edges = a_star_search(start, goal, adj, cities)
@@ -441,11 +473,13 @@ def compare_all_algorithm(start_city, dest, weighted, cities):
 
     def standardize_ids(start, goal, adj):
         # For IDS, convert weighted adjacency to unweighted
-        unweighted = {city: [neighbor for neighbor, _ in neighbors]
-                     for city, neighbors in adj.items()}
-        traversal, path, edges = iterative_deep_search(start, goal, unweighted)
-        return traversal or [start], path, edges or []
-
+        unweighted = {}
+        for city, neighbors in  adj.items():
+            unweighted[city] = []
+            for neighbor, _ in neighbors:
+                unweighted[city].append(neighbor)
+        traverse, path, edges = iterative_deep_search(start,goal, unweighted)
+        return traversal or [start],path, edges or []
     # Dictionary mapping algorithm names to their standardized functions
     algorithms = {
         "BFS": lambda: standardize_bfs(start_city, dest, weighted),
@@ -459,9 +493,11 @@ def compare_all_algorithm(start_city, dest, weighted, cities):
     results = {}
     for name, algorithm_func in algorithms.items():
         try:
+            initial_memory = get_memory_usage()  # Track memory before the algorithm start
             start_time = time.perf_counter()
             traversal, path, edges = algorithm_func()
             end_time = time.perf_counter()
+            final_memory = get_memory_usage() #get the final memory usage
 
             # Calculate path distance if path exists
             path_distance = float('inf')
@@ -473,6 +509,7 @@ def compare_all_algorithm(start_city, dest, weighted, cities):
                 "Path": path,
                 "Traverse": traversal,
                 "Edges": edges,
+                "Memory": final_memory - initial_memory,
                 "Time": end_time - start_time,
                 "Distance": path_distance,
                 "Cities_Visited": len(traversal) if traversal else 0
@@ -483,6 +520,7 @@ def compare_all_algorithm(start_city, dest, weighted, cities):
                 "Path": None,
                 "Traverse": [],
                 "Edges": [],
+                 "Memory": 0,
                 "Time": 0,
                 "Distance": float('inf'),
                 "Cities_Visited": 0
@@ -541,7 +579,7 @@ def start_program():
 
     # Display results
     print("\nAlgorithm Comparison Results")
-    print(f"{'Algorithm':<10} {'Path Found':<10} {'Path Length':<15} {'Cities Visited':<15} {'Time (ms)':<15}")
+    print(f"{'Algorithm':<10} {'Path Found':<10} {'Path Length':<15} {'Cities Visited':<15} {'Memory (bytes})': <15}{'Time (ms)':<15}")
     print("-" * 65)
 
     for algo, data in results.items():
@@ -549,8 +587,9 @@ def start_program():
         path_length = len(data["Path"]) if data["Path"] else 0
         cities_visited = len(data["Traverse"]) if data["Traverse"] else 0
         time_taken = data["Time"]
+        memory_used = data["Memory"]
 
-        print(f"{algo:<10} {path_found:<10} {path_length:<15} {cities_visited:<15} {time_taken:<15.6f}")
+        print(f"{algo:<10} {path_found:<10} {path_length:<15} {cities_visited:<15} {memory_used:<15.2f}{time_taken:<15.6f}")
     # Visualization menu
     while True:
         print("\nVisualization Options:")
