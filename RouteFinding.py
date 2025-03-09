@@ -153,9 +153,7 @@ def best_first_search( start_city, end_goal_city, adj, cities):
     while queue:
         # pop the current city
         heuristic, current_city, current_path, cost = heapq.heappop(queue)
-        #add current to path
-        #if current_city not in path:
-            #path.append(current_city)
+        
         if end_goal_city == current_city:
             # reconstruct the path
             full_path = reconstruct(previous_start, start_city, end_goal_city)
