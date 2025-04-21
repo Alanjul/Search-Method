@@ -41,7 +41,7 @@ class Data:
         self.facilitators.append(Facilitator("NU", "Numen"))
         self.facilitators.append(Facilitator("ZI", "Zeldin"))
 
-        #initializing activities with their preferred facilitors
+        #initializing activities with their preferred facilitators
         preferred_facilitators = [self.facilitators[1],self.facilitators[0],self.facilitators[2], self.facilitators[9]]
         other_facilitators = [self.facilitators[8], self.facilitators[3]]
 
@@ -467,7 +467,6 @@ class GeneticAlgorithm:
                     fitness -= 0.2
 
             #check for facilitator load
-
             if  fid == "TY" and len(schedule_items) < 2: #Exception for Dr. Tyler
                 pass  #No penalty should be given
             elif len(schedule_items) <= 2:
@@ -621,7 +620,7 @@ class GeneticAlgorithm:
             #combining the priority and slected schedules
         return  priority_schedule +  selected
     def cross_over(self, parent1: Schedule, parent2: Schedule) -> Schedule:
-        #performing a cross over to combine two parents  to create two ospring parts of their genetic material
+        #This function performs a cross over to combine two parents  to create two offspring parts of their genetic material
         child = Schedule() #initializing the schedule class
 
         #for each activity , randomly choice a either parent
@@ -663,7 +662,7 @@ class GeneticAlgorithm:
 
 
     def mutation(self,schedule:Schedule):
-        # Applying random mutations to the schedule
+        # The functions applies random mutations to the schedule
         for slot in schedule.activity_slots:
             activity = slot.getActivity()
             # Room mutation
@@ -697,7 +696,6 @@ class GeneticAlgorithm:
         #create new population through crossover and mutation
         elite_count = self.priority_size
         new_population = selected_population[:elite_count] #keeping individuals with highest factors
-
         #Generate new schedule
         while len(new_population) < self.population_size:
             # Select two distinct parents
