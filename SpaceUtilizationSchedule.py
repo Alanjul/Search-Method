@@ -1,6 +1,5 @@
 
-import numpy as np  #Helps in working with arrays
-import numpy #To generate random numbers
+import numpy as np  #Helps in working with arrays and generate random numbers
 import copy #to create copies
 from typing import Dict, List, Tuple, Set, Optional #data structures for storing the data
 import matplotlib.pyplot as plt
