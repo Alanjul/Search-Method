@@ -29,7 +29,7 @@ route_collection = []
 def get_memory_usage():
     process = psutil.Process(os.getpid())
     memory_info = process.memory_info()
-    return memory_info.rss #return memory usage in bites
+    return memory_info.rss #return memory usage in bytes
 def load_cities(filename):
     "load cities loads the cities from csv file using pandas pd"
     try:
@@ -153,9 +153,7 @@ def best_first_search( start_city, end_goal_city, adj, cities):
     while queue:
         # pop the current city
         heuristic, current_city, current_path, cost = heapq.heappop(queue)
-        #add current to path
-        #if current_city not in path:
-            #path.append(current_city)
+        
         if end_goal_city == current_city:
             # reconstruct the path
             full_path = reconstruct(previous_start, start_city, end_goal_city)
