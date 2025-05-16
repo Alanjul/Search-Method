@@ -1,16 +1,16 @@
-Schedule (Fitnes: 8.950000):
+Schedule (Fitnes: 11.800000):
 Course     | Section | Room                           | Cap.  | Time       | Facilitator              
 -------------------------------------------------------------------------------------------------------
-SLA100     | B       | Loft 310                       | 108   | 10:00 AM   | Zeldin                   
-SLA291     | N/A     | Loft 206                       | 75    | 11:00AM    | Zeldin                   
-SLA191     | A       | Logos 301                      | 450   | 11:00AM    | Glen                     
-SLA191     | B       | Frank 119                      | 60    | 12:00PM    | Banks                    
-SLA449     | N/A     | Loft 310                       | 108   | 12:00PM    | Shaw                     
-SLA304     | N/A     | Beach 201                      | 60    | 1:00PM     | Dr.Tyler                 
-SLA394     | N/A     | Frank 119                      | 60    | 3:00PM     | Zeldin                   
-SLA100     | A       | Beach 201                      | 60    | 3:00PM     | Glen                     
-SLA201     | N/A     | Beach 201                      | 60    | 3:00PM     | Banks                    
-SLA303     | N/A     | Beach 301                      | 75    | 3:00PM     | Glen                     
-SLA451     | N/A     | Loft 310                       | 108   | 3:00PM     | Dr.Tyler                 
+SLA303     | N/A     | Beach 301                      | 75    | 10:00AM    | Glen                     
+SLA394     | N/A     | Roman 216                      | 30    | 11:00AM    | Singer                   
+SLA100     | B       | Loft 206                       | 75    | 12:00PM    | Zeldin                   
+SLA201     | N/A     | Loft 206                       | 75    | 1:00PM     | Zeldin                   
+SLA191     | A       | Loft 310                       | 108   | 1:00PM     | Glen                     
+SLA191     | B       | Frank 119                      | 60    | 2:00PM     | Banks                    
+SLA449     | N/A     | Loft 206                       | 75    | 2:00PM     | Singer                   
+SLA451     | N/A     | Loft 310                       | 108   | 2:00PM     | Zeldin                   
+SLA291     | N/A     | Frank 119                      | 60    | 3:00PM     | Singer                   
+SLA304     | N/A     | Roman 201                      | 50    | 3:00PM     | Glen                     
+SLA100     | A       | Loft 310                       | 108   | 3:00PM     | Banks                    
 
-Fitness: 8.9500
+Fitness: 11.8000

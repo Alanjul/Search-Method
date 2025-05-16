@@ -15,7 +15,7 @@ class Data:
     def initialization(self):
         """Initialization method used to initialize all the activites, time,
         facilitators and rooms"""
-        times = ["10:00 AM", "11:00AM", "12:00PM", "1:00PM", "2:00PM", "3:00PM"]
+        times = ["10:00AM", "11:00AM", "12:00PM", "1:00PM", "2:00PM", "3:00PM"]
         #looping through available time
         for i, time in enumerate(times):
             self.meeting_times.append(MeetingTime(f"TM{i+1}", time))
@@ -154,7 +154,7 @@ class Room:
 
     def __str__(self):
         if self.__building:
-            return f"{self.getBuilding()}"
+            return f"{self.getBuilding()}{self.getNumber()}"
         return f"{self.getNumber()} "
     def __repr__(self):
         """Repr method for debugging"""
@@ -294,7 +294,7 @@ class Schedule:
         result += header
         result += "-" * len(header) + "\n"
 
-        for slot in slot_sorted:  # <- Use sorted list here!
+        for slot in slot_sorted:
             facilitator = slot.getFacilitator()
 
 
@@ -345,7 +345,11 @@ class GeneticAlgorithm:
                 slot = ActivitySlot(activity)
 
                 # Randomly assign a room
-                slot.setRoom(np.random.choice(self.data.rooms))
+                available_rooms = [room for room in self.data.rooms if
+                                   room.getMaximum() >= activity.getExpectedEnrollment()]
+                if not available_rooms:
+                    available_rooms = self.data.rooms #use any rooms
+                slot.setRoom(np.random.choice(available_rooms))
 
                 # Randomly assign a meeting time
                 slot.setMeetingTime(np.random.choice(self.data.meeting_times))
@@ -354,9 +358,9 @@ class GeneticAlgorithm:
                 preferred = activity.getPreferredFacilitator()
                 others = activity.getOtherFacilitator()
 
-                facilitators_pool = preferred + others
-                if facilitators_pool:
 
+                if preferred or others:
+                    facilitators_pool = preferred + others
                     weights = [0.7] * len(preferred) + [0.3] * len(others)
                     total = sum(weights)
                     normalized_weights = [w / total for w in weights]  # normalize so they sum to 1
@@ -440,13 +444,6 @@ class GeneticAlgorithm:
                     slot_fitness +=0.2 #other listed facilitators
                 else:
                     slot_fitness -= 0.1 #any other facilitator
-
-            #penalized for missing a facilitator
-            else:
-                if not facilitator:
-                    slot_fitness -=0.01
-                if not time: # missing time
-                    slot_fitness -=0.01
             fitness += slot_fitness #get the total fitness
 
         #Facilitator load times
@@ -468,7 +465,6 @@ class GeneticAlgorithm:
                     fitness -= 0.2
 
             #check for facilitator load
-
             if  fid == "TY" and len(schedule_items) < 2: #Exception for Dr. Tyler
                 pass  #No penalty should be given
             elif len(schedule_items) <= 2:
@@ -501,7 +497,7 @@ class GeneticAlgorithm:
                         # If buildings require significant travel time
                         if ((building1 in ["Roman", "Beach"] and building2 not in ["Roman", "Beach"]) or
                                 (building2 in ["Roman", "Beach"] and building1 not in ["Roman", "Beach"])):
-                            fitness -= 0.3  # Penalty for difficult travel
+                            fitness -= 0.4  # Penalty for difficult travel
         #special rules
         if len(sla101_slots) == 2:  #slots for sla101
             slot_a, slot_b = sla101_slots #unpack the two slots into a and b
@@ -574,7 +570,7 @@ class GeneticAlgorithm:
             time1 = times_list[i][0]
             time2 = times_list[i+1][0]
             if (self.time_index(time2) - self.time_index(time1)) == 1:
-                consecutive.append((time2, time1))
+                consecutive.append((time1, time2))
 
         return consecutive
     def  calculate_time_difference(self, time1:MeetingTime, time2: MeetingTime) -> int:
@@ -593,37 +589,22 @@ class GeneticAlgorithm:
         raise ValueError(f"MeetingTime with ID {time.getId()} not found in master list.")
     def softmax_activation_function(self, population:List[Schedule]) -> List[Schedule]:
         """the function applies softmax normalization to convert fitness to probabilities"""
-        fitness_value = np.array([schedule.fitness for schedule in population])
+        sorted_population = sorted(population, key=lambda x: x.fitness, reverse=True) #sort the population in descending order
 
+        #getting fitness value
+        fitness_value = np.array([s.fitness for s in sorted_population])
         #applying normalizarion
-        exp_fitness = np.exp(fitness_value - np.max(fitness_value)) #substract max
+        scaled_fitness = fitness_value * 10 #scale
+        exp_fitness = np.exp(scaled_fitness - np.max(scaled_fitness)) #substract the max
         softmax_probs = exp_fitness /np.sum(exp_fitness)
 
-        #storing normalized fitness in each schedule
-        for i, schedule in enumerate(population):
-            schedule.normalized_fitness = softmax_probs[i]
-
-        #sort population
-        sorted_population = sorted(population, key=lambda x : x.fitness, reverse=True)
-
-        #for priority schedule pass to the next generation
-        priority_schedule = sorted_population[:self.priority_size]
-
-        #perform selection
-        remaining_size = self.population_size - self.priority_size
-        selected  = []
-
-        #perform Roullet wheel selection picking items based on their probabilities
-        for  _ in range(remaining_size):
-            indx = np.random.choice(len(population), p=softmax_probs) #schedule with best fitness
-            #make independent copy
-            selected.append(copy.deepcopy(population[indx])) #apply a deep copy to the  selected schedule list
-
-            #combining the priority and slected schedules
-        return  priority_schedule +  selected
+        #select individuals based on the probabilities
+        indices = np.random.choice(len(sorted_population), size=len(sorted_population), p=softmax_probs)
+        selected = [sorted_population[i] for i in indices]
+        return selected
     def cross_over(self, parent1: Schedule, parent2: Schedule) -> Schedule:
         #performing a cross over to combine two parents  to create two ospring parts of their genetic material
-        child = Schedule() #initializing the schedule class
+        child = Schedule() #initializing the schedule clas
 
         #for each activity , randomly choice a either parent
         for activity in self.data.activities:
@@ -633,7 +614,13 @@ class GeneticAlgorithm:
             #create a new slot
             if parent1_slot is None or parent2_slot is  None:
                 child_slot =ActivitySlot(activity)
-                child_slot.setRoom(np.random.choice(self.data.rooms))
+                suitable_rooms = [room for room in self.data.rooms if
+                                  room.getMaximum()>= activity.getExpectedEnrollment()]
+                if suitable_rooms:
+                    child_slot.setRoom(np.random.choice(suitable_rooms))
+                else:
+                    child_slot.setRoom(np.random.choice(self.data.rooms))
+
                 child_slot.setMeetingTime(np.random.choice(self.data.meeting_times))
 
                 available = activity.getPreferredFacilitator() + activity.getOtherFacilitator()
@@ -669,10 +656,7 @@ class GeneticAlgorithm:
             activity = slot.getActivity()
             # Room mutation
             if np.random.random() < self.mutation_rate:
-                expected = activity.getExpectedEnrollment()
-                candidate_rooms = [r for r in self.data.rooms if r.getMaximum() >= expected]
-                if candidate_rooms:
-                    slot.setRoom(np.random.choice(candidate_rooms))
+                slot.setRoom(np.random.choice(self.data.rooms))
 
             # Time mutation
             if np.random.random() < self.mutation_rate:
@@ -680,11 +664,7 @@ class GeneticAlgorithm:
 
             # Facilitator mutation (only from preferred + other pools)
             if np.random.random() < self.mutation_rate:
-                preferred = activity.getPreferredFacilitator()
-                others = activity.getOtherFacilitator()
-                candidates = preferred + others
-                if candidates:
-                    slot.setFacilitator(np.random.choice(candidates))
+                slot.setFacilitator(np.random.choice(self.data.facilitators))
 
         return schedule
     def evolve(self, population: List[Schedule]) -> List[Schedule]:
@@ -692,17 +672,21 @@ class GeneticAlgorithm:
         for schedule in population:
             self.calculate_fitnes(schedule)
 
-        #Evolving through mutation , selection and crossover
-        selected_population = self. softmax_activation_function(population)
+        #sort in descending order
+        sorted_population = sorted(population, key=lambda x: x.fitness, reverse=True)
 
-        #create new population through crossover and mutation
+        #keeping on elite individuals
         elite_count = self.priority_size
-        new_population = selected_population[:elite_count] #keeping individuals with highest factors
+        new_population = sorted_population[:elite_count].copy() #keeping individuals with highest factors
+
+        #using the softmax to select the parents
+        selection_pool = self.softmax_activation_function(sorted_population)
 
         #Generate new schedule
         while len(new_population) < self.population_size:
             # Select two distinct parents
-            parent1, parent2 = np.random.choice(selected_population, 2, replace=False)
+            parents= np.random.choice(len(selection_pool), 2, replace=False)
+            parent1, parent2 = selection_pool[parents[0]], selection_pool[parents[1]]
 
             #create a child through cross
             child = self.cross_over(parent1, parent2)
@@ -754,6 +738,7 @@ def main():
     generation = 1 # tracking how many  iterations
     threshold_improvement = 0.01 # improvement threshold
     converged = False  #track if the algorithm converged
+    previous_best_fitness = best_fitness
     while generation <  max_generations and not converged:
         #population  evolving
         population = algorithm.evolve(population)
@@ -778,12 +763,12 @@ def main():
             if improvement <  threshold_improvement:
                 print(f"Converged with less than { threshold_improvement:.1%} improvement")
                 converged=True
-        # Reduce mutation rate every 25 generations if improvement detected
-        if generation % 25 == 0 and generation >= 25:
-            if best_fitness_history[-1] > best_fitness_history[-26]:
+
+        if best_fitness > previous_best_fitness:
                 new_rate = algorithm.mutation_rate / 2
                 algorithm.mutation_rate = max(new_rate, MIN_MUTATION_RATE)
                 print(f"Reduced mutation to {algorithm.mutation_rate}")
+        previous_best_fitness = best_fitness
 
         generation += 1
 
