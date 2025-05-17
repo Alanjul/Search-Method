@@ -602,13 +602,11 @@ class GeneticAlgorithm:
         selected = [sorted_population[i] for i in indices]
         return selected
     def cross_over(self, parent1: Schedule, parent2: Schedule) -> Schedule:
-<<<<<<< HEAD
-        #performing a cross over to combine two parents  to create two ospring parts of their genetic material
-        child = Schedule() #initializing the schedule clas
-=======
+
+        #performing a cross over to combine two parents  to create two offspring
         #This function performs a cross over to combine two parents  to create two offspring parts of their genetic material
         child = Schedule() #initializing the schedule class
->>>>>>> 18a176fd4f4e6c79998ce95b5ad6239d89b07bbf
+
 
         #for each activity , randomly choice a either parent
         for activity in self.data.activities:
@@ -681,15 +679,12 @@ class GeneticAlgorithm:
 
         #keeping on elite individuals
         elite_count = self.priority_size
-<<<<<<< HEAD
+
         new_population = sorted_population[:elite_count].copy() #keeping individuals with highest factors
 
         #using the softmax to select the parents
         selection_pool = self.softmax_activation_function(sorted_population)
 
-=======
-        new_population = selected_population[:elite_count] #keeping individuals with highest factors
->>>>>>> 18a176fd4f4e6c79998ce95b5ad6239d89b07bbf
         #Generate new schedule
         while len(new_population) < self.population_size:
             # Select two distinct parents
